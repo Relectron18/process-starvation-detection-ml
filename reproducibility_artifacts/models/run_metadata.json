@@ -1,0 +1,39 @@
+{
+  "generated_at": "2026-07-14T08:04:41.437767",
+  "seed": 42,
+  "best_model": "Random Forest (tuned)",
+  "metrics": {
+    "accuracy": 0.91,
+    "precision": 0.7561,
+    "recall": 0.8241,
+    "f1": 0.7886,
+    "roc_auc": 0.9642,
+    "pr_auc": 0.874
+  },
+  "recommended_threshold": 0.53,
+  "feature_columns": [
+    "process_type",
+    "priority",
+    "nice_value",
+    "burst_time_ms",
+    "waiting_time_ms",
+    "turnaround_time_ms",
+    "queue_length_at_arrival",
+    "times_preempted",
+    "cpu_usage_percent",
+    "memory_usage_percent",
+    "io_wait_time_ms",
+    "context_switches",
+    "num_threads",
+    "process_state",
+    "wait_to_burst_ratio",
+    "preemption_rate",
+    "cpu_starvation_gap",
+    "low_priority_high_wait",
+    "pk_wait_anomaly"
+  ],
+  "n_train_samples": 7200,
+  "n_val_samples": 2400,
+  "n_test_samples": 2400,
+  "model_selection_and_threshold_tuned_on": "validation split only (test set touched once, at the end)"
+}

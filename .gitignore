@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+venv/
+reproducibility_artifacts/outputs/
+reproducibility_artifacts/models_seed7/
+reproducibility_artifacts/models_seed123/
+.DS_Store

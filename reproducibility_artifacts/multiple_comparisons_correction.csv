@@ -1,0 +1,6 @@
+test,n_seeds,t_stat,p_raw,sig_raw_0.05,p_holm,sig_holm_0.05,p_bonferroni,sig_bonferroni_0.05,p_benjamini_hochberg,sig_bh_0.05
+5.1 Random Forest vs XGBoost F1,12,3.75,0.00321,True,0.00963,True,0.01606,True,0.00535,True
+5.2 CV-selected ML vs HRRN F1,12,87.565,0.0,True,0.0,True,0.0,True,0.0,True
+"5.3 pk_wait_anomaly ablation (RF, full access)",12,-3.118,0.00978,True,0.01955,True,0.04889,True,0.01222,True
+5.6(a) pk_wait_anomaly x MLP (full access),12,0.295,0.77329,False,0.77329,False,1.0,False,0.77329,False
+"5.6(b) pk_wait_anomaly, reduced feature access",12,4.03,0.00198,True,0.00793,True,0.00992,True,0.00496,True
