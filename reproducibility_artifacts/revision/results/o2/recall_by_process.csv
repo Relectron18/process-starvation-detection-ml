@@ -1,0 +1,13 @@
+model,scenario,proc,n_pos,recall
+seed42,nice,victim_lowprio,51,0.9803921568627451
+seed42,nice,victim_normal,24,0.0
+seed42,rt,victim_lowprio,85,1.0
+seed42,rt,victim_normal,33,0.0
+seed7,nice,victim_lowprio,51,1.0
+seed7,nice,victim_normal,24,1.0
+seed7,rt,victim_lowprio,85,1.0
+seed7,rt,victim_normal,33,1.0
+seed123,nice,victim_lowprio,51,1.0
+seed123,nice,victim_normal,24,1.0
+seed123,rt,victim_lowprio,85,1.0
+seed123,rt,victim_normal,33,1.0

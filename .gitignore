@@ -8,3 +8,5 @@ reproducibility_artifacts/outputs/
 reproducibility_artifacts/models_seed7/
 reproducibility_artifacts/models_seed123/
 .DS_Store
+reproducibility_artifacts/revision/tables/
+reproducibility_artifacts/revision/figures/

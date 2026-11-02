@@ -3,7 +3,7 @@
 # Process Starvation Detection with Machine Learning
 
 **Detecting CPU starvation on a running Linux system from kernel scheduler telemetry,
-using a queueing-theory-informed classifier benchmarked against HRRN and validated on real processes.**
+using a queueing-theory-informed classifier benchmarked against HRRN and tested on real processes.**
 
 ![Python](https://img.shields.io/badge/python-3.9%2B-3776AB?logo=python&logoColor=white)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4%2B-F7931E?logo=scikitlearn&logoColor=white)
@@ -37,8 +37,10 @@ To answer it, the project:
 |---|---|
 | **ML vs classical baseline** | CV-selected model F1 **0.778** vs HRRN **0.392** across 12 seeds (paired *t* = 87.6, *p* = 5.4 × 10⁻¹⁷) |
 | **Best model (synthetic)** | Random Forest, F1 **0.780 ± 0.016**, ROC-AUC 0.965 |
-| **Real hardware, `SCHED_FIFO` hog** | Precision **0.989**, Recall 0.721, F1 **0.833**, ROC-AUC 0.999 (5 trials) |
-| **Real hardware, `nice −15` hog** | Precision **1.000**, Recall 0.667, F1 **0.800**, ROC-AUC 1.000 (3 trials) |
+| **Real hardware, seed 42 model, operational label** | RT F1 **0.833**, nice F1 **0.800**, but F1 is 0.000 without the chronically starved nice 19 process |
+| **Real hardware, episode label** | Seed 42 detected **0 of 289** contention windows, seed 7 detected 289 and seed 123 detected 275 |
+| **Added workloads** | 30 further trials. Learned models do not uniformly beat HRRN on real telemetry, and a simple wait share rule is competitive |
+| **Collection overhead** | About 39 µs per PID read, 0.52% of one vCPU for 5 PIDs at 0.25 s polling |
 | **Queueing-theory feature** | Slightly *hurts* when overlapping raw columns are present (ΔF1 −0.0028), *helps* when they are withheld (ΔF1 +0.0038); both Holm–Bonferroni significant |
 
 ## Architecture
@@ -105,7 +107,7 @@ Brinch Hansen's Highest Response Ratio Next ranks jobs by R = (wait + burst) / b
 | Scenario | Contention mechanism | Trials |
 |---|---|---|
 | **RT** | A `SCHED_FIFO` busy loop (`chrt -f 50`) from t = 12 s to 28 s preempts every normal process on the core | 5 |
-| **nice** | The same hog at `nice −15`: heavy CFS weighting, no hard preemption | 3 |
+| **nice** | The same hog at `nice −15`: heavy fair scheduler weighting, no hard preemption | 3 |
 
 Each trial runs 46 s on a single core with two CPU-bound and two I/O-bound victims, giving **768 labelled windows** in total. Ground truth is operational: a CPU-bound process is starved in a window if it got **< 5 %** of the window on CPU while spending **> 50 %** waiting on the run queue. The threshold choice is stress-tested in `threshold_sensitivity.csv`.
 
@@ -130,9 +132,9 @@ The tree ensembles trade recall for precision; the linear and kernel models do t
 
 ### Real Linux processes
 
-<p align="center"><img src="docs/figures/real_hardware.png" width="720" alt="Accuracy, precision, recall, F1 and ROC-AUC on real hardware for both contention scenarios"></p>
+<p align="center"><img src="docs/figures/real_trial.png" width="720" alt="Run queue wait, CPU burst and predicted probability for one RT trial"></p>
 
-The model was trained only on synthetic data and never saw a real process. On real kernel telemetry it is **almost never wrong when it raises an alarm** (precision 0.99–1.00) and ranks starved windows nearly perfectly (ROC-AUC ≈ 1.0). Recall is lower because the threshold, tuned on synthetic validation data, is conservative.
+The models were trained only on synthetic data. They rank real windows well, but thresholds chosen on synthetic data do not transfer. The seed 42 model scores F1 of 0.833 on RT and 0.800 on nice under the operational label, yet it flags almost only the chronically starved nice 19 process and misses all 289 contention episode windows of the targeted process. Its predicted probability peaks near 0.52, below the 0.53 threshold. Precision and recall change considerably with the training seed. Thresholds tuned on real telemetry from other scenarios were far more stable, using the same partly circular label.
 
 ### Does the queueing-theory feature help?
 
@@ -164,9 +166,7 @@ All five significance tests use 12 seeds and Holm–Bonferroni correction:
 ├── README.md
 ├── LICENSE
 ├── docs/figures/                         result plots used in this README
-├── paper/ResearchPaper.docx              full write-up
 └── reproducibility_artifacts/
-    ├── starvation_detection_project.ipynb  narrated end-to-end notebook (seed 42)
     ├── pipeline_core.py                    data generation, leak-free features & scaling
     ├── config.py                           shared constants
     ├── train_model.py                      headless training, tuning, threshold selection
@@ -184,6 +184,7 @@ All five significance tests use 12 seeds and Holm–Bonferroni correction:
     ├── *.csv                               every result table reported above
     ├── models/, models_seed*_matched/      trained model, scaler, encoders, metadata
     ├── tests/                              pytest: determinism, NaNs, leakage regression
+    ├── revision/                           code and results added in peer review
     ├── run_all.sh                          one-command reproduction
     └── CHANGES.md                          methodology fixes and their effect
 ```
@@ -218,7 +219,7 @@ python3 apply_model_to_real_data.py real_data_rt_trial1.csv scored.csv
 
 ```bash
 sudo python3 collect_real_data.py rt 1      # real-time preemption scenario
-python3 collect_real_data.py nice 1         # CFS niceness scenario
+python3 collect_real_data.py nice 1         # niceness scenario
 ```
 
 The collector checks with `os.sched_getscheduler` that the hog really got `SCHED_FIFO`, and warns loudly if it didn't, so a silent privilege failure can't produce a mislabelled trial.
@@ -227,18 +228,18 @@ See [`reproducibility_artifacts/README.md`](reproducibility_artifacts/README.md)
 
 ## Limitations
 
-- Real-hardware validation covers **one machine, one CPU core** (a virtualised sandbox) and two deliberately engineered contention mechanisms. Priority-inversion chains, cgroup throttling, NUMA and multi-core contention are not covered.
-- Workloads are busy-loop and sleep-loop stand-ins, not production applications.
-- **The decision threshold does not transfer across training seeds.** ROC-AUC on real hardware stays at 0.975–1.000 for models trained on three different seeds, but precision and recall at the synthetic-tuned threshold vary considerably.
-- The synthetic label is a weighted, noised combination of features rather than a trace from a real scheduler simulation.
-- The ground-truth label for real trials is an operational definition, robust to nearby thresholds but not externally standardised.
+- Real hardware evaluation is confined to virtualized environments, two kernels, at most two vCPUs and short engineered episodes. Priority inversion chains and NUMA effects are not covered.
+- Workloads are stand ins, not production applications.
+- **The decision threshold does not transfer from synthetic data to real telemetry**, and results vary by training seed.
+- The operational label depends on two model inputs, marks chronic low share as starvation and excludes I/O processes. The episode label covers one process.
+- stalld, PSI and Radmin were compared through simple rules imitating their signals, not through those systems.
+- The synthetic label is a chosen formula rather than a scheduler trace, so synthetic results are controlled benchmarks.
 
 ## Future work
 
-- Multi-core and multi-machine validation, including cgroup CPU throttling and priority inversion.
-- Calibrating the threshold on a small amount of real data to fix threshold transfer.
-- A live monitoring daemon that scores processes continuously from `/proc`.
-- Comparing against a re-implemented ML-for-scheduling baseline from prior work.
+- Real hardware validation across multiple machines and core counts.
+- Training on production workloads with labels independent of the features.
+- A direct comparison against deployed tools such as stalld and a reimplemented ML for scheduling baseline.
 
 ## Tech stack
 

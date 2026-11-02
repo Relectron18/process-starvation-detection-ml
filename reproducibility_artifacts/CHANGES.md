@@ -304,3 +304,13 @@ Added a short section before References pointing to this artifacts package,
 consistent with most venues' reproducibility requirements. Author names,
 affiliation, and archival/DOI location remain withheld pending venue
 submission, as in the rest of this draft.
+
+# Peer review revision
+
+Changes made in response to the ICMLDE 2026 reviews. Code and results are in `revision/`.
+
+1. Added 30 trials in an Ubuntu 24.04 virtual machine: replication of RT and nice, application style workloads, overcommit, cgroup throttling and a two CPU run.
+2. Added an episode label for `victim_normal` that does not depend on model features. Under it the seed 42 model detected 0 of 289 windows, so the claim that learned models beat HRRN now covers synthetic data only.
+3. Added class imbalance strategies, grouped and real hardware permutation importance, simple comparison rules on the same windows, and collection overhead measurements.
+4. Corrected the feature importance rise from ninefold to about eightfold, and the scheduler description, since kernel 6.18.5 uses EEVDF rather than CFS.
+5. Corrected the record of class weighting: Gradient Boosting and XGBoost were not class weighted.

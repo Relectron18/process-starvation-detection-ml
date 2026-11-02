@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-mkdir -p outputs models models_seed7 models_seed123
+mkdir -p outputs models models_seed7_matched models_seed123_matched
 echo "== 0/8: recording environment =="
 {
   echo "# captured $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -21,7 +21,7 @@ echo "  -> outputs/environment.txt"
 echo "== 1/8: unit tests =="
 pytest tests/ -q
 
-echo "== 2/8: train model (primary seed=42, notebook-equivalent) =="
+echo "== 2/8: train model (primary seed=42) =="
 python3 train_model.py --seed 42 --models-dir models
 
 echo "== 3/8: real-hardware validation, all 8 collected trials + threshold sensitivity =="
@@ -37,11 +37,10 @@ echo "== 6/8: multiple-comparisons correction across all 5 significance tests ==
 python3 significance_summary.py
 
 echo "== 7/8: train 2 extra seeds and check real-hardware generalization across seeds =="
-echo "  (reduced RandomizedSearchCV iterations -- this is a robustness check on Table 2,"
-echo "   not the primary reported number, so it doesn't need the full tuning budget)"
-python3 train_model.py --seed 7   --n-iter 8 --models-dir models_seed7
-python3 train_model.py --seed 123 --n-iter 8 --models-dir models_seed123
-python3 multiseed_real_world_check.py --model-dirs seed42=models seed7=models_seed7 seed123=models_seed123
+echo "  (same n_iter 20 tuning budget as seed 42)"
+python3 train_model.py --seed 7   --n-iter 20 --models-dir models_seed7_matched
+python3 train_model.py --seed 123 --n-iter 20 --models-dir models_seed123_matched
+python3 multiseed_real_world_check.py --model-dirs seed42=models seed7=models_seed7_matched seed123=models_seed123_matched
 
 echo "== 8/8: done =="
 echo "To re-collect fresh real-hardware trials instead of using the shipped CSVs:"
